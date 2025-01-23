@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
-    <flow name="sys-employee-api-main" doc:id="7ebba5d6-2afc-4f19-b564-238c833d337e">
-        <http:listener config-ref="sys-employee-api-httpListenerConfig" path="${http.path}">
+    <flow name="sys-employee-api-main">
+        <http:listener config-ref="sys-employee-api-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
-                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:response>
             <http:error-response statusCode="#[vars.httpStatus default 500]">
-                <http:body><![CDATA[#[payload]]]></http:body>
-                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:router config-ref="sys-employee-api-config" />
-        <error-handler ref="global-error-handler" />
+        <apikit:router config-ref="sys-employee-api-config"/>
+        <error-handler ref="global-error-handler">
+        </error-handler>
     </flow>
     <flow name="sys-employee-api-console" initialState="stopped">
         <http:listener config-ref="sys-employee-api-httpListenerConfig" path="/console/*">
@@ -23,7 +24,7 @@
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
             </http:error-response>
         </http:listener>
-        <apikit:console config-ref="sys-employee-api-config" />
+        <apikit:console config-ref="sys-employee-api-config"/>
         <error-handler>
             <on-error-propagate type="APIKIT:NOT_FOUND">
                 <ee:transform doc:name="Transform Message">
@@ -40,29 +41,39 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="put:\employees:application\xml:sys-employee-api-config">
+    <flow name="put:\employees\(ID):application\json:sys-employee-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="ID">attributes.uriParams.'ID'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
         <ee:transform doc:name="Transform Message">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	status: 200,
-	message: "“Success”"
-} ]]></ee:set-payload>
+  status: "success",
+  message: "Employee was updated successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
-    <flow name="delete:\employees:sys-employee-api-config">
+    <flow name="delete:\employees\(ID):sys-employee-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="ID">attributes.uriParams.'ID'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
         <ee:transform doc:name="Transform Message">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
-  status: 200,
-  message: "“Success”"
-}]]></ee:set-payload>
+  status: "success",
+  message: "Employee was deleted successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
@@ -73,9 +84,72 @@ output application/json
 output application/json
 ---
 {
-  status: 200,
-  message: "Success"
-} ]]></ee:set-payload>
+  status: "success",
+  message: "Retrieved employee details",
+  data: [
+    {
+      ID: "TR-00125",
+      DOJ: "2020-02-24",
+      middleName: "Jr.",
+      contact: "+91-6296288390",
+      lastName: "Downy",
+      presentAddress: {
+        addressLine1: "3TB, Jackson Heights, 22nd Downing street",
+        state: "West Bengal",
+        hasPermanentAddress: true,
+        country: "India",
+        zipCode: "700013",
+        addressLine2: "Opposite the CC2 mall"
+      },
+      department: {
+        deptCode: "HR",
+        deptName: "Human Resource"
+      },
+      firstName: "Robert",
+      email: "rober.jr.downey@abc.com",
+      branch: {
+        branchCode: "KLKTA",
+        branchName: "Kolkata",
+        address: {
+          addressLine1: "3TB, Jackson Heights, 22nd Downing street",
+          addressLine2: "Opposite the CC2 mall",
+          zipCode: "700013",
+          state: "West Bengal",
+          country: "India"
+        },
+        employeeCount: 1509,
+        operatingSince: "1999-01-01"
+      },
+      permanentAddress: {
+        addressLine1: "3TB, Jackson Heights, 22nd Downing street",
+        addressLine2: "Opposite the CC2 mall",
+        zipCode: "700013",
+        state: "West Bengal",
+        country: "India"
+      },
+      DOB: "1985-02-24"
+    }
+  ]
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\ping:sys-employee-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  status: "success",
+  message: "All dependencies are up and running",
+  data: [
+    {
+      resource: "DB:MONGODB",
+      status: "UP"
+    }
+  ]
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
@@ -86,9 +160,12 @@ output application/json
 output application/json
 ---
 {
-  status: 201,
-  message: "“Success”"
-}]]></ee:set-payload>
+  status: "success",
+  message: "Employee created successfully",
+  data: [
+    "HR-92839"
+  ]
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
     </flow>
