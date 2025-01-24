@@ -4,3 +4,7 @@ http:
   readTimeout: "300000"
   basePath: "/api"
   path: "/*"
+  
+app:
+  id: "${app.id}"
+  
